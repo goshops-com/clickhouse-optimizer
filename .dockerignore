@@ -1,0 +1,39 @@
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build files
+*/dist
+*/build
+*/.next
+
+# Environment files
+.env*
+!.env.example
+
+# Git files
+.git
+.gitignore
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files
+docker-compose.yml
+Dockerfile*
+.dockerignore
+
+# Logs
+logs
+*.log
+
+# Optional: Exclude large folders that aren't needed for build
+docs 
