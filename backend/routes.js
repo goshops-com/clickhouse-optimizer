@@ -2,13 +2,33 @@ const express = require('express');
 const { executeQuery } = require('./db');
 const QUERIES = require('./queries');
 const OpenAI = require('openai');
+const config = require('./config');
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI only if API key is provided
+let openai = null;
+if (config.openai.enabled) {
+  try {
+    openai = new OpenAI({
+      apiKey: config.openai.apiKey,
+    });
+    console.log('OpenAI client initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize OpenAI client:', error.message);
+  }
+}
 
 const router = express.Router();
+
+// Middleware to check if OpenAI is available for AI routes
+const requireOpenAI = (req, res, next) => {
+  if (!config.openai.enabled || !openai) {
+    return res.status(503).json({
+      error: 'AI features are not available',
+      details: 'OpenAI API key is not configured or client initialization failed',
+    });
+  }
+  next();
+};
 
 router.get('/metrics/query-performance', async (req, res) => {
   try {
@@ -230,7 +250,7 @@ async function getTableDDLs(tableInfos) {
 }
 
 // Endpoint to get AI-powered optimization recommendations
-router.post('/ai-analyze-query', async (req, res) => {
+router.post('/ai-analyze-query', requireOpenAI, async (req, res) => {
   try {
     const { query, analysis } = req.body;
     const returnPromptOnly = req.query.prompt_only === 'true';
@@ -357,25 +377,34 @@ Format your response using Markdown with:
       });
     }
 
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o", // Use gpt-4o which is the best available model (gpt-4.1 is not a valid identifier)
-      messages: [
-        { role: "system", content: "You are an expert ClickHouse database performance engineer, specialized in query optimization. Format your responses in markdown for better readability." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.1, // Lower temperature for more focused, analytical responses
-      max_tokens: 1500
-    });
-    
-    // Extract the response
-    const aiResponse = completion.choices[0].message.content;
-    
-    // Return the AI's optimization recommendations
-    res.json({ 
-      recommendations: aiResponse,
-      analyzedTables: Object.keys(tableDDLs)
-    });
+    try {
+      // Call OpenAI API
+      const completion = await openai.chat.completions.create({
+        model: config.openai.model,
+        messages: [
+          { role: "system", content: "You are an expert ClickHouse database performance engineer, specialized in query optimization. Format your responses in markdown for better readability." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.1, // Lower temperature for more focused, analytical responses
+        max_tokens: 1500
+      });
+      
+      // Extract the response
+      const aiResponse = completion.choices[0].message.content;
+      
+      // Return the AI's optimization recommendations
+      res.json({ 
+        recommendations: aiResponse,
+        analyzedTables: Object.keys(tableDDLs)
+      });
+    } catch (aiError) {
+      console.error('OpenAI API error:', aiError);
+      res.status(500).json({ 
+        error: 'Error calling OpenAI API',
+        details: aiError.message,
+        suggestion: 'Check your API key and quota limits'
+      });
+    }
     
   } catch (error) {
     console.error('AI analysis error:', error);
