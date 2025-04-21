@@ -4,6 +4,7 @@ const path = require('path');
 const config = require('./config');
 const routes = require('./routes');
 const { initialize: initializeDB } = require('./db');
+const basicAuth = require('express-basic-auth');
 
 const app = express();
 
@@ -18,13 +19,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// API routes
+// API routes (no auth)
 app.use('/api', routes);
 
-// Health check endpoint
+// Health check endpoint (no auth)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -32,6 +30,25 @@ app.get('/health', (req, res) => {
     version: require('./package.json').version || 'unknown'
   });
 });
+
+// Basic auth middleware for static content if enabled
+if (config.auth.static.enabled) {
+  // Apply auth to all non-API routes
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api') || req.path === '/health') {
+      return next();
+    }
+    
+    basicAuth({
+      users: { [config.auth.static.username]: config.auth.static.password },
+      challenge: true,
+      realm: 'ClickHouse Dashboard'
+    })(req, res, next);
+  });
+}
+
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -64,6 +81,9 @@ async function startServer() {
       console.log(`Server running on port ${PORT}`);
       console.log(`Static files are being served from ${path.join(__dirname, 'public')}`);
       console.log(`API available at http://localhost:${PORT}/api`);
+      if (config.auth.static.enabled) {
+        console.log(`Basic authentication enabled for static content`);
+      }
     });
   } catch (error) {
     console.error('Failed to start server:', error);

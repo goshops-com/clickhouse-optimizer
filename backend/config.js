@@ -15,6 +15,13 @@ const config = {
     apiKey: process.env.OPENAI_API_KEY || '',
     enabled: !!process.env.OPENAI_API_KEY,
     model: process.env.OPENAI_MODEL || 'gpt-4o',
+  },
+  auth: {
+    static: {
+      enabled: process.env.STATIC_AUTH_ENABLED === 'true',
+      username: process.env.STATIC_AUTH_USERNAME || 'admin',
+      password: process.env.STATIC_AUTH_PASSWORD || 'password'
+    }
   }
 };
 
@@ -28,5 +35,6 @@ if (!config.clickhouse.host) {
 console.log(`Server configuration: port ${config.server.port}`);
 console.log(`ClickHouse connection: ${config.clickhouse.host}:${config.clickhouse.port}`);
 console.log(`OpenAI integration: ${config.openai.enabled ? 'Enabled' : 'Disabled'}`);
+console.log(`Static auth: ${config.auth.static.enabled ? 'Enabled' : 'Disabled'}`);
 
 module.exports = config; 
