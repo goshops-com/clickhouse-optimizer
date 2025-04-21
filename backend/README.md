@@ -8,6 +8,15 @@ This is the backend server for the ClickHouse Monitoring Dashboard.
 - Static file serving for the frontend application
 - OpenAI integration for query analysis
 
+## OpenAI Integration
+
+The dashboard includes an optional AI-powered query analysis feature using OpenAI. This functionality:
+- Helps optimize and analyze complex ClickHouse queries
+- Provides recommendations for query improvements
+- Explains query execution plans in plain language
+
+This feature is completely optional. If you don't provide an OpenAI API key, the dashboard will still function normally, but the AI analysis features will be disabled.
+
 ## Directory Structure
 
 - `/config.js` - Configuration settings
@@ -33,6 +42,19 @@ This is the backend server for the ClickHouse Monitoring Dashboard.
    ```
    node server.js
    ```
+
+## Docker Setup
+
+The easiest way to run the ClickHouse Monitoring Dashboard is with Docker:
+
+```
+docker pull goshops/clickhouse-optimizer
+docker run -p 3000:3000 -e CH_HOST=your-clickhouse-host -e CH_PORT=8123 -e CH_USER=default -e CH_PASSWORD=your-password -e OPENAI_API_KEY=your-openai-key goshops/clickhouse-optimizer
+```
+
+Adjust the environment variables as needed for your ClickHouse instance.
+
+Note: The `OPENAI_API_KEY` is optional. If not provided, the dashboard will still function normally, but AI-powered query analysis features will be disabled.
 
 ## Deploying the Frontend
 
